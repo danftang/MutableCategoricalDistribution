@@ -1,6 +1,6 @@
 # A Mutable Categorical Distribution
 
-With the recent rise in popularity of probabilistic programming libraries there is a need to develop efficient algorithms to work with probability distributions. Here we present a Kotlin class that efficiently implements the *categorical distribution* (sometimes called an *empirical distribution*) which is a probability distribution over a finite number of states where the probability of each state is specified as a parameter.
+With the recent rise in popularity of probabilistic programming libraries there is a need to develop efficient algorithms to work with probability distributions. Here we present a Kotlin class `MutableCategorical` that efficiently implements the *categorical distribution* (sometimes called an *empirical distribution*) which is a probability distribution over a finite number of states where the probability of each state is specified as a parameter.
 
 Unlike existing implementations, this one allows categories to be added and deleted and the probabilities of the categories can be modified, all in log(n) time.
 
