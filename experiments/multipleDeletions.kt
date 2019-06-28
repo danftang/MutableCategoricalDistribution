@@ -6,12 +6,14 @@ import kotlin.random.Random
 fun main() {
     val nItems = 1000000
     val probs = Array(nItems) { Random.nextDouble() }
-    val categorical = MutableCategorical(probs.asSequence().mapIndexed { i, p -> Pair(i, p) }.asIterable())
-    val categoricalRotate = MutableCategoricalWithRotation(probs.asSequence().mapIndexed { i, p -> Pair(i, p) }.asIterable())
-    val categories = TreeSet(categorical.keys)
+    val categorical = MutableCategorical<Int>(nItems)
+    val categoricalRotate = MutableCategoricalWithRotation<Int>(nItems)
 
+    categorical.createHuffmanTree(1..nItems, probs.asList())
+    categoricalRotate.createHuffmanTree(1..nItems, probs.asList())
 
-    val batchsize = 500
+    val categories = TreeSet<Int>()
+    for(i in 1..nItems) categories.add(i)
     while (categorical.size > 1024) {
         val randCategory = Random.nextInt(nItems)
         val catToDelete = categories.ceiling(randCategory) ?: categories.floor(randCategory)

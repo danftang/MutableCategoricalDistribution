@@ -7,46 +7,46 @@ import kotlin.random.Random
 
 class MutableCategoricalWithRotation<T> : AbstractMap<T,Double> {
     private var sumTreeRoot: SumTreeNode<T>? = null
-    private val leafNodes = HashMap<T,SumTreeNode<T>>()
-
-
-    constructor()
-
-
-    constructor(probs : Map<T,Double>) {
-        createHuffmanTree(probs.asSequence().map {SumTreeNode(null,it.key, it.value)}.asIterable(), probs.size)
-    }
-
-
-    constructor(probs : Iterable<Pair<T,Double>>, initialSize : Int = 1024) {
-        createHuffmanTree(probs.asSequence().map {SumTreeNode(null,it.first, it.second)}.asIterable(), initialSize)
-    }
-
-
-    private fun createHuffmanTree(probs : Iterable<SumTreeNode<T>>, initialSize : Int = 1024) {
-        val heap = PriorityQueue<SumTreeNode<T>>(initialSize) {i, j -> i.value.compareTo(j.value)}
-
-        probs.forEach {
-            heap.add(it)
-            leafNodes[it.key] = it
-        }
-
-        while(heap.size > 1) {
-            val first = heap.poll()
-            val second = heap.poll()
-            val parent = SumTreeNode(null, first, second)
-            heap.add(parent)
-        }
-        sumTreeRoot = heap.poll()
-    }
-
-
+    private val leafNodes: HashMap<T,SumTreeNode<T>>
 
     override val entries: Set<Map.Entry<T, Double>>
         get() = EntrySet(leafNodes.values)
 
     override val size: Int
         get() = leafNodes.size
+
+
+    constructor() {
+        leafNodes = HashMap()
+    }
+
+
+    constructor(initialCapacity : Int) {
+        leafNodes = HashMap(initialCapacity)
+    }
+
+
+    // Sets this to be the Huffman tree of the given categories with the given probabilities
+    // This creates an optimally efficient tree but runs in O(n log(n)) time as the entries
+    // need to be sorted
+    fun createHuffmanTree(categories : Iterable<T>, probabilities : Iterable<Double>, initialCapacity : Int = -1) {
+        val heapComparator = Comparator<SumTreeNode<T>> {i, j -> i.value.compareTo(j.value)}
+        if (initialCapacity > 0)
+            createTree(categories, probabilities, PriorityQueue(initialCapacity, heapComparator))
+        else
+            createTree(categories, probabilities, PriorityQueue(calcCapacity(categories, probabilities), heapComparator))
+    }
+
+
+    // Sets this to be a binary tree of the given categories with the given probabilities
+    // This creates a tree with minimal total depth and runs in O(n) time
+    fun createBinaryTree(categories : Iterable<T>, probabilities : Iterable<Double>, initialCapacity : Int = -1) {
+        if (initialCapacity > 0)
+            createTree(categories, probabilities, ArrayDeque(initialCapacity))
+        else
+            createTree(categories, probabilities, ArrayDeque(calcCapacity(categories, probabilities)))
+    }
+
 
     override operator fun get(key : T) : Double {
         return leafNodes.getValue(key).value
@@ -102,6 +102,36 @@ class MutableCategoricalWithRotation<T> : AbstractMap<T,Double> {
 
     fun calcHuffmanLength() : Double {
         return (sumTreeRoot?.calcHuffmanLength()?:0.0) / (sumTreeRoot?.value?:1.0)
+    }
+
+
+    private fun <Q : Queue<SumTreeNode<T>>> createTree(categories : Iterable<T>, probabilities : Iterable<Double>, heap : Q) {
+        val category = categories.iterator()
+        val probability = probabilities.iterator()
+
+        clear()
+        while(category.hasNext() && probability.hasNext()) {
+            val newNode = SumTreeNode(null, category.next(), probability.next())
+            heap.add(newNode)
+            leafNodes[newNode.key] = newNode
+        }
+
+        while(heap.size > 1) {
+            val first = heap.poll()
+            val second = heap.poll()
+            val parent = SumTreeNode(null, first, second)
+            heap.add(parent)
+        }
+        sumTreeRoot = heap.poll()
+    }
+
+
+    private fun calcCapacity(categories : Iterable<T>, probabilities : Iterable<Double>) : Int {
+        return when {
+            categories is Collection<T> -> categories.size
+            probabilities is Collection<Double> -> probabilities.size
+            else -> 1024
+        }
     }
 
 

@@ -16,4 +16,11 @@ fun toss() : Coin {
 }
 ```
 
+You can initialise a `MutableCategorical` to be an (optimal) Huffman tree using the `createHuffmanTree` method; this takes O(nlog(n)) time. Alternatively, you can initialise it to a minimal depth tree (which isn't quite optimal) in O(n) time by calling `createBinaryTree`. So, for example
+```kotlin
+val categorical = MutableCategorical<Int>()
+categorical.createHuffmanTree(1..4, listOf(0.1,0.2,0.3,0.4))
+```
+would create an optimal categorical with the integers 1 to 4 having probabilities 0.1, 0.2, 0.3 and 0.4 respectively.
+
 The [accompanying paper](./paper.pdf) describes the algorithm along with a demonstration of its efficiency in practice. If you're concerned about worst-case performance, we also provide a class `MutableCategoricalWithRotation` in the `experiments/` folder. This version performs tree rotations on addition and deletion to ensure the tree remains efficient. However, as noted in the paper, the improvement in practice is expected to be small so I recommend using `MutableCategorical`.

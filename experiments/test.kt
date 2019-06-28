@@ -10,6 +10,8 @@ fun main() {
 fun testHuffmanLength() {
     val myChoose = MutableCategorical<Int>()
 
+    myChoose.createHuffmanTree(listOf(1,2),listOf(0.1,0.2))
+
     val nTests = 10
     var total = 0.0
     var huffTotal = 0.0
@@ -46,8 +48,8 @@ fun testMutability() {
     val nItems = 100000
     val probGenerator : ()->Double = { spikeyNoise() }
     val probs = Array(nItems) {probGenerator()}
-    val myChoose = MutableCategorical(probs.asSequence().mapIndexed { i, p -> Pair(i, p) }.asIterable())
-
+    val myChoose = MutableCategorical<Int>(nItems)
+    myChoose.createHuffmanTree(1..nItems, probs.asList())
     println(myChoose.calcHuffmanLength()/ calcHuffmanLength(myChoose.values))
 
     var total = 0.0
