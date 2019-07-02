@@ -3,8 +3,9 @@ import kotlin.random.Random
 fun main() {
 //    testAddRemove()
 //    testChoose()
+    testCreateTree()
 //    testHuffmanLength()
-    testMutability()
+//    testMutability()
 }
 
 fun testHuffmanLength() {
@@ -77,20 +78,38 @@ fun testChoose() {
     myChoose[0] = 0.6
     myChoose[1] = 0.2
     myChoose[2] = 0.1
-    myChoose[3] = 0.1
+    myChoose[3] = 0.06
+    myChoose[4] = 0.04
 
-    val count = Array(4) {0}
-    val nSamples = 10000
+    val count = Array(myChoose.size) {0}
+    val nSamples = 10000000
     for(i in 1..nSamples) {
         count[myChoose.sample()]++
     }
     for(i in 0 until count.size) {
-        println("$i -> ${count[i]*1.0/nSamples}")
-        println("${myChoose[i]}")
+        println("%d: %.4f -> %.4f".format(i, myChoose[i], count[i]*1.0/nSamples))
+    }
+}
+
+fun testCreateTree() {
+    val myChoose = MutableCategorical<Int>()
+
+    val probs = listOf(0.6,0.04,0.06,0.2,0.1)
+   // myChoose.createHuffmanTree(0..probs.size, probs)
+    myChoose.createBinaryTree(0..probs.size, probs)
+
+    val count = Array(myChoose.size) {0}
+    val nSamples = 10000000
+    for(i in 1..nSamples) {
+        count[myChoose.sample()]++
+    }
+    for(i in 0 until count.size) {
+        println("%d: %.4f -> %.4f".format(i, myChoose[i], count[i]*1.0/nSamples))
     }
 
 
 }
+
 
 fun testAddRemove() {
     val myChoose = MutableCategorical<Int>()

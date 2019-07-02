@@ -49,7 +49,7 @@ class MutableCategoricalWithRotation<T> : AbstractMap<T,Double> {
 
 
     override operator fun get(key : T) : Double {
-        return leafNodes.getValue(key).value
+        return leafNodes.get(key)?.value?:0.0
     }
 
     fun put(item : T, probability : Double) {
@@ -57,6 +57,10 @@ class MutableCategoricalWithRotation<T> : AbstractMap<T,Double> {
     }
 
     operator fun set(item : T, probability : Double) {
+        if(probability == 0.0) {
+            remove(item)
+            return
+        }
         val root = sumTreeRoot
         if(root == null) {
             val newNode = SumTreeNode(null, item, probability)
