@@ -4,7 +4,7 @@ With the recent rise in popularity of probabilistic programming libraries there 
 
 Unlike existing implementations, this class allows categories to be added and deleted and the probabilities of the categories to be modified, all in O(log(n)) time instead of O(n) time. The algorithm is based on Huffman coding and we present new algorithms to efficiently modify the coding tree.
 
-The class implements the `Map<CATEGORY,Double>` interface and overrides the `[]` operator, so just treat it like a map from category values to category probabilities. To take a sample, just call the `sample` method. So, for example, to create a fair coin flip...
+The class implements the `MutableMap<CATEGORY,Double>` interface, so just treat it like a map from category values to category probabilities. To take a sample, call the `sample` method. So, for example, to create a fair coin flip...
 ```kotlin
 enum class Coin {Heads, Tails}
 

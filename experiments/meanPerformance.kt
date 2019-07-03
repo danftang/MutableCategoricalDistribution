@@ -39,7 +39,7 @@ fun calculatePerformance(probGenerator : ()->Double) {
                 categorical[toModify] = newVal
                 categoricalRotate[toModify] = newVal
             } else {
-                while(!categorical.remove(toModify)) toModify = (toModify + 1).rem(nItems)
+                while(categorical.remove(toModify) == null) toModify = (toModify + 1).rem(nItems)
                 categoricalRotate.remove(toModify)
             }
         }

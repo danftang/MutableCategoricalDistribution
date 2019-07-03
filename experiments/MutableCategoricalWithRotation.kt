@@ -1,16 +1,14 @@
 import java.util.*
 import kotlin.NoSuchElementException
-import kotlin.collections.AbstractMap
-import kotlin.collections.AbstractSet
 import kotlin.collections.HashMap
 import kotlin.random.Random
 
-class MutableCategoricalWithRotation<T> : AbstractMap<T,Double> {
+class MutableCategoricalWithRotation<T> : AbstractMutableMap<T,Double> {
     private var sumTreeRoot: SumTreeNode<T>? = null
     private val leafNodes: HashMap<T,SumTreeNode<T>>
 
-    override val entries: Set<Map.Entry<T, Double>>
-        get() = EntrySet(leafNodes.values)
+    override val entries: MutableSet<MutableMap.MutableEntry<T, Double>>
+        get() = MutableEntrySet()
 
     override val size: Int
         get() = leafNodes.size
@@ -52,43 +50,33 @@ class MutableCategoricalWithRotation<T> : AbstractMap<T,Double> {
         return leafNodes.get(key)?.value?:0.0
     }
 
-    fun put(item : T, probability : Double) {
-        set(item, probability)
-    }
 
-    operator fun set(item : T, probability : Double) {
-        if(probability == 0.0) {
-            remove(item)
-            return
-        }
-        val root = sumTreeRoot
-        if(root == null) {
-            val newNode = SumTreeNode(null, item, probability)
-            sumTreeRoot = newNode
-            leafNodes[item] = newNode
-            return
-        }
+    override fun put(item : T, probability : Double) : Double? {
+        if (probability == 0.0) return remove(item)
         val existingNode = leafNodes[item]
-        if(existingNode == null) {
+        if (existingNode == null) {
             val newNode = SumTreeNode(null, item, probability)
-            sumTreeRoot = root.add(newNode)
+            sumTreeRoot = sumTreeRoot?.add(newNode) ?: newNode
             leafNodes[item] = newNode
-            return
+            return null
         }
         val newRoot = existingNode.remove()
+        val oldProb = existingNode.value
         existingNode.value = probability
-        if(newRoot == null) {
-            sumTreeRoot = existingNode
-            return
-        }
-        sumTreeRoot = newRoot.add(existingNode)
+        sumTreeRoot = newRoot?.add(existingNode) ?: existingNode
+        return oldProb
     }
 
-    fun remove(item :T) : Boolean {
-        val node = leafNodes.remove(item) ?: return false
+
+    operator fun set(item : T, probability : Double) = put(item, probability)
+
+
+    override fun remove(item :T) : Double? {
+        val node = leafNodes.remove(item) ?: return null
         sumTreeRoot = node.remove()
-        return true
+        return node.value
     }
+
 
     fun sample(sum : Double) : T? {
         return sumTreeRoot?.find(sum)?.key
@@ -99,10 +87,12 @@ class MutableCategoricalWithRotation<T> : AbstractMap<T,Double> {
         return sample(Random.nextDouble()*root.value)!!
     }
 
-    fun clear() {
+
+    override fun clear() {
         leafNodes.clear()
         sumTreeRoot = null
     }
+
 
     fun calcHuffmanLength() : Double {
         return (sumTreeRoot?.calcHuffmanLength()?:0.0) / (sumTreeRoot?.value?:1.0)
@@ -290,11 +280,50 @@ class MutableCategoricalWithRotation<T> : AbstractMap<T,Double> {
         }
     }
 
-    class EntrySet<T>(private val leafNodeEntries: Collection<SumTreeNode<T>>) : AbstractSet<Map.Entry<T,Double>>() {
+
+    inner class MutableEntrySet : AbstractMutableSet<MutableMap.MutableEntry<T,Double>>() {
+        override fun add(element: MutableMap.MutableEntry<T, Double>): Boolean {
+            this@MutableCategoricalWithRotation[element.key] = element.value
+            return true
+        }
+
         override val size: Int
-            get() = leafNodeEntries.size
-        override fun iterator() = leafNodeEntries.iterator()
+            get() = this@MutableCategoricalWithRotation.size
+        override fun iterator(): MutableIterator<MutableMap.MutableEntry<T, Double>> = MutableEntryIterator(this@MutableCategoricalWithRotation.leafNodes.iterator())
+
     }
+
+
+    inner class MutableEntry(val leafNodeEntry : MutableMap.MutableEntry<T,SumTreeNode<T>>) : MutableMap.MutableEntry<T,Double> {
+        override val key: T
+            get() = leafNodeEntry.key
+        override val value: Double
+            get() = leafNodeEntry.value.value
+
+        override fun setValue(newValue: Double): Double {
+            val oldVal = value
+            set(key, newValue)
+            return oldVal
+        }
+    }
+
+
+    inner class MutableEntryIterator(val leafNodesIterator: MutableIterator<MutableMap.MutableEntry<T, SumTreeNode<T>>>) : MutableIterator<MutableMap.MutableEntry<T, Double>> {
+        var lastReturned : MutableMap.MutableEntry<T,SumTreeNode<T>>? = null
+        override fun hasNext() = leafNodesIterator.hasNext()
+
+        override fun next(): MutableMap.MutableEntry<T,Double> {
+            val next = leafNodesIterator.next()
+            lastReturned = next
+            return MutableEntry(next)
+        }
+        override fun remove() {
+            leafNodesIterator.remove()
+            lastReturned?.value?.remove()
+        }
+
+    }
+
 
     override fun toString() : String {
         var s = "(  "
