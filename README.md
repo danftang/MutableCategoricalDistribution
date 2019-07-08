@@ -23,4 +23,10 @@ categorical.createHuffmanTree(1..4, listOf(0.1,0.2,0.3,0.4))
 ```
 would create an optimal categorical with the integers 1 to 4 having probabilities 0.1, 0.2, 0.3 and 0.4 respectively.
 
+Alternatively, you can create a new (binary tree) instance with the `mutableCategoricalOf` function which takes a mapping from categories to probabilities. For example...
+```kotlin
+val categorical = mutableCategoricalOf(1 to 0.6, 2 to 0.4)
+```
+
+
 The [accompanying paper](./paper.pdf) describes the algorithm along with a demonstration of its efficiency in practice. If you're concerned about worst-case performance, we also provide a class `MutableCategoricalWithRotation` in the `experiments/` folder. This version performs tree rotations on addition and deletion to ensure the tree remains efficient. However, as noted in the paper, the improvement in practice is expected to be small so I recommend using `MutableCategorical`.

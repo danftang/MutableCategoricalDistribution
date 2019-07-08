@@ -3,9 +3,9 @@ import kotlin.NoSuchElementException
 import kotlin.collections.HashMap
 import kotlin.random.Random
 
-class MutableCategorical<T>: AbstractMutableMap<T,Double> {
+class MutableCategorical<T> : AbstractMutableMap<T, Double> {
     private var sumTreeRoot: SumTreeNode<T>? = null
-    private val leafNodes: HashMap<T,SumTreeNode<T>>
+    private val leafNodes: HashMap<T, SumTreeNode<T>>
 
     override val entries: MutableSet<MutableMap.MutableEntry<T, Double>>
         get() = MutableEntrySet()
@@ -19,7 +19,7 @@ class MutableCategorical<T>: AbstractMutableMap<T,Double> {
     }
 
 
-    constructor(initialCapacity : Int) {
+    constructor(initialCapacity: Int) {
         leafNodes = HashMap(initialCapacity)
     }
 
@@ -27,8 +27,8 @@ class MutableCategorical<T>: AbstractMutableMap<T,Double> {
     // Sets this to be the Huffman tree of the given categories with the given probabilities
     // This creates an optimally efficient tree but runs in O(n log(n)) time as the entries
     // need to be sorted
-    fun createHuffmanTree(categories : Iterable<T>, probabilities : Iterable<Double>, initialCapacity : Int = -1) {
-        val heapComparator = Comparator<SumTreeNode<T>> {i, j -> i.value.compareTo(j.value)}
+    fun createHuffmanTree(categories: Iterable<T>, probabilities: Iterable<Double>, initialCapacity: Int = -1) {
+        val heapComparator = Comparator<SumTreeNode<T>> { i, j -> i.value.compareTo(j.value) }
         if (initialCapacity > 0)
             createTree(categories, probabilities, PriorityQueue(initialCapacity, heapComparator))
         else
@@ -38,7 +38,7 @@ class MutableCategorical<T>: AbstractMutableMap<T,Double> {
 
     // Sets this to be a binary tree of the given categories with the given probabilities
     // This creates a tree with minimal total depth and runs in O(n) time
-    fun createBinaryTree(categories : Iterable<T>, probabilities : Iterable<Double>, initialCapacity : Int = -1) {
+    fun createBinaryTree(categories: Iterable<T>, probabilities: Iterable<Double>, initialCapacity: Int = -1) {
         if (initialCapacity > 0)
             createTree(categories, probabilities, ArrayDeque(initialCapacity))
         else
@@ -46,12 +46,12 @@ class MutableCategorical<T>: AbstractMutableMap<T,Double> {
     }
 
 
-    override operator fun get(key : T) : Double {
-        return leafNodes.get(key)?.value?:0.0
+    override operator fun get(key: T): Double {
+        return leafNodes.get(key)?.value ?: 0.0
     }
 
 
-    override fun put(item : T, probability : Double) : Double? {
+    override fun put(item: T, probability: Double): Double? {
         if (probability == 0.0) return remove(item)
         val existingNode = leafNodes[item]
         if (existingNode == null) {
@@ -68,25 +68,28 @@ class MutableCategorical<T>: AbstractMutableMap<T,Double> {
     }
 
 
-    operator fun set(item : T, probability : Double) = put(item, probability)
+    operator fun set(item: T, probability: Double) = put(item, probability)
 
 
-    override fun remove(item :T) : Double? {
+    override fun remove(item: T): Double? {
         val node = leafNodes.remove(item) ?: return null
         sumTreeRoot = node.remove()
         return node.value
     }
 
 
-    fun sample(sum : Double) : T? {
+    fun sample(sum: Double): T? {
         return sumTreeRoot?.find(sum)?.key
     }
 
 
-    fun sample() : T {
+    fun sample(): T {
         val root = sumTreeRoot ?: throw(NoSuchElementException())
-        return sample(Random.nextDouble()*root.value)!!
+        return sample(Random.nextDouble() * root.value)!!
     }
+
+
+    fun sum() = sumTreeRoot?.value ?: 0.0
 
 
     override fun clear() {
@@ -95,23 +98,27 @@ class MutableCategorical<T>: AbstractMutableMap<T,Double> {
     }
 
 
-    fun calcHuffmanLength() : Double {
-        return (sumTreeRoot?.calcHuffmanLength()?:0.0) / (sumTreeRoot?.value?:1.0)
+    fun calcHuffmanLength(): Double {
+        return (sumTreeRoot?.calcHuffmanLength() ?: 0.0) / (sumTreeRoot?.value ?: 1.0)
     }
 
 
-    private fun <Q : Queue<SumTreeNode<T>>> createTree(categories : Iterable<T>, probabilities : Iterable<Double>, heap : Q) {
+    private fun <Q : Queue<SumTreeNode<T>>> createTree(categories: Iterable<T>, probabilities: Iterable<Double>, heap: Q) {
         val category = categories.iterator()
         val probability = probabilities.iterator()
 
         clear()
-        while(category.hasNext() && probability.hasNext()) {
-            val newNode = SumTreeNode(null, category.next(), probability.next())
-            heap.add(newNode)
-            leafNodes[newNode.key] = newNode
+        while (category.hasNext() && probability.hasNext()) {
+            val prob = probability.next()
+            val cat = category.next()
+            if (prob > 0.0) {
+                val newNode = SumTreeNode(null, cat, prob)
+                heap.add(newNode)
+                leafNodes[newNode.key] = newNode
+            }
         }
 
-        while(heap.size > 1) {
+        while (heap.size > 1) {
             val first = heap.poll()
             val second = heap.poll()
             val parent = SumTreeNode(null, first, second)
@@ -121,7 +128,7 @@ class MutableCategorical<T>: AbstractMutableMap<T,Double> {
     }
 
 
-    private fun calcCapacity(categories : Iterable<T>, probabilities : Iterable<Double>) : Int {
+    private fun calcCapacity(categories: Iterable<T>, probabilities: Iterable<Double>): Int {
         return when {
             categories is Collection<T> -> categories.size
             probabilities is Collection<Double> -> probabilities.size
@@ -133,27 +140,27 @@ class MutableCategorical<T>: AbstractMutableMap<T,Double> {
     class SumTreeNode<T> : Map.Entry<T, Double> {
         var parent: SumTreeNode<T>?
         override var value: Double
-        private var childKeyUnion : Any?
+        private var childKeyUnion: Any?
         private var nullableRChild: SumTreeNode<T>?
 
         var lChild: SumTreeNode<T>
             get() {
-                if(isLeaf()) throw(java.lang.IllegalStateException("Can't get child of a leaf node"))
+                if (isLeaf()) throw(java.lang.IllegalStateException("Can't get child of a leaf node"))
                 return childKeyUnion as SumTreeNode<T>
             }
             private set(i) {
                 childKeyUnion = i
             }
 
-        var rChild : SumTreeNode<T>
-            get() = nullableRChild?:throw(java.lang.IllegalStateException("Can't get child of a leaf node"))
+        var rChild: SumTreeNode<T>
+            get() = nullableRChild ?: throw(java.lang.IllegalStateException("Can't get child of a leaf node"))
             private set(i) {
                 nullableRChild = i
             }
 
         override var key: T
             get() {
-                if(!isLeaf()) throw(java.lang.IllegalStateException("Can't read key from a non-leaf node"))
+                if (!isLeaf()) throw(java.lang.IllegalStateException("Can't read key from a non-leaf node"))
                 return childKeyUnion as T
             }
             private set(i) {
@@ -167,9 +174,9 @@ class MutableCategorical<T>: AbstractMutableMap<T,Double> {
             this.nullableRChild = null
         }
 
-        constructor(parent : SumTreeNode<T>?, child1: SumTreeNode<T>, child2: SumTreeNode<T>) {
+        constructor(parent: SumTreeNode<T>?, child1: SumTreeNode<T>, child2: SumTreeNode<T>) {
             this.parent = parent
-            if(child1.value > child2.value) {
+            if (child1.value > child2.value) {
                 this.childKeyUnion = child1
                 this.nullableRChild = child2
             } else {
@@ -181,25 +188,25 @@ class MutableCategorical<T>: AbstractMutableMap<T,Double> {
             this.value = child1.value + child2.value
         }
 
-        fun find(sum : Double) : SumTreeNode<T>? {
-            if(isLeaf()) {
-                if(sum > value || sum < 0.0) return null
+        fun find(sum: Double): SumTreeNode<T>? {
+            if (isLeaf()) {
+                if (sum > value || sum < 0.0) return null
                 return this
             }
-            if(sum <= lChild.value) return lChild.find(sum)
+            if (sum <= lChild.value) return lChild.find(sum)
             return rChild.find(sum - lChild.value)
         }
 
         // returns the root node
-        fun updateSumsToRoot() : SumTreeNode<T> {
+        fun updateSumsToRoot(): SumTreeNode<T> {
             updateSum()
-            return parent?.updateSumsToRoot()?:this
+            return parent?.updateSumsToRoot() ?: this
         }
 
         fun updateSum() {
-            if(!isLeaf()) {
+            if (!isLeaf()) {
                 value = lChild.value + rChild.value
-                if(lChild.value < rChild.value) {
+                if (lChild.value < rChild.value) {
                     val tmp = rChild
                     rChild = lChild
                     lChild = tmp
@@ -207,8 +214,8 @@ class MutableCategorical<T>: AbstractMutableMap<T,Double> {
             }
         }
 
-        fun add(newNode: SumTreeNode<T>) : SumTreeNode<T> {
-            if(isLeaf() || value <= newNode.value) { // add right here
+        fun add(newNode: SumTreeNode<T>): SumTreeNode<T> {
+            if (isLeaf() || value <= newNode.value) { // add right here
                 val oldParent = parent
                 val newParent = SumTreeNode(parent, this, newNode)
                 oldParent?.swapChild(this, newParent)
@@ -220,21 +227,21 @@ class MutableCategorical<T>: AbstractMutableMap<T,Double> {
         }
 
         // removes this and returns the root node
-        fun remove() : SumTreeNode<T>? {
-            if(!isLeaf()) throw(IllegalArgumentException("Trying to remove an internal node"))
-            val p = parent?:return null
+        fun remove(): SumTreeNode<T>? {
+            if (!isLeaf()) throw(IllegalArgumentException("Trying to remove an internal node"))
+            val p = parent ?: return null
             val sib = p.otherChild(this)
             p.parent?.swapChild(p, sib)
             sib.parent = p.parent
-            return sib.parent?.updateSumsToRoot()?:sib
+            return sib.parent?.updateSumsToRoot() ?: sib
         }
 
 
         fun swapChild(oldChild: SumTreeNode<T>, newChild: SumTreeNode<T>) {
-            if(oldChild == lChild) {
+            if (oldChild == lChild) {
                 lChild = newChild
                 return
-            } else if(oldChild == rChild) {
+            } else if (oldChild == rChild) {
                 rChild = newChild
                 return
             }
@@ -242,7 +249,7 @@ class MutableCategorical<T>: AbstractMutableMap<T,Double> {
         }
 
 
-        fun otherChild(firstChild : SumTreeNode<T>) : SumTreeNode<T> {
+        fun otherChild(firstChild: SumTreeNode<T>): SumTreeNode<T> {
             return when (firstChild) {
                 lChild -> rChild
                 rChild -> lChild
@@ -250,18 +257,18 @@ class MutableCategorical<T>: AbstractMutableMap<T,Double> {
             }
         }
 
-        fun isLeaf() : Boolean {
+        fun isLeaf(): Boolean {
             return nullableRChild == null
         }
 
-        fun calcHuffmanLength() : Double {
-            if(isLeaf()) return 0.0
+        fun calcHuffmanLength(): Double {
+            if (isLeaf()) return 0.0
             return value + lChild.calcHuffmanLength() + rChild.calcHuffmanLength()
         }
     }
 
 
-    inner class MutableEntrySet : AbstractMutableSet<MutableMap.MutableEntry<T,Double>>() {
+    inner class MutableEntrySet : AbstractMutableSet<MutableMap.MutableEntry<T, Double>>() {
         override fun add(element: MutableMap.MutableEntry<T, Double>): Boolean {
             this@MutableCategorical[element.key] = element.value
             return true
@@ -269,12 +276,15 @@ class MutableCategorical<T>: AbstractMutableMap<T,Double> {
 
         override val size: Int
             get() = this@MutableCategorical.size
-        override fun iterator(): MutableIterator<MutableMap.MutableEntry<T, Double>> = MutableEntryIterator(this@MutableCategorical.leafNodes.iterator())
+
+        override fun iterator(): MutableIterator<MutableMap.MutableEntry<T, Double>> =
+            MutableEntryIterator(this@MutableCategorical.leafNodes.iterator())
 
     }
 
 
-    inner class MutableEntry(val leafNodeEntry : MutableMap.MutableEntry<T,SumTreeNode<T>>) : MutableMap.MutableEntry<T,Double> {
+    inner class MutableEntry(val leafNodeEntry: MutableMap.MutableEntry<T, SumTreeNode<T>>) :
+        MutableMap.MutableEntry<T, Double> {
         override val key: T
             get() = leafNodeEntry.key
         override val value: Double
@@ -285,18 +295,24 @@ class MutableCategorical<T>: AbstractMutableMap<T,Double> {
             set(key, newValue)
             return oldVal
         }
+
+        override fun hashCode(): Int {
+            return key.hashCode() xor value.hashCode()
+        }
     }
 
 
-    inner class MutableEntryIterator(val leafNodesIterator: MutableIterator<MutableMap.MutableEntry<T, SumTreeNode<T>>>) : MutableIterator<MutableMap.MutableEntry<T, Double>> {
-        var lastReturned : MutableMap.MutableEntry<T,SumTreeNode<T>>? = null
+    inner class MutableEntryIterator(val leafNodesIterator: MutableIterator<MutableMap.MutableEntry<T, SumTreeNode<T>>>) :
+        MutableIterator<MutableMap.MutableEntry<T, Double>> {
+        var lastReturned: MutableMap.MutableEntry<T, SumTreeNode<T>>? = null
         override fun hasNext() = leafNodesIterator.hasNext()
 
-        override fun next(): MutableMap.MutableEntry<T,Double> {
+        override fun next(): MutableMap.MutableEntry<T, Double> {
             val next = leafNodesIterator.next()
             lastReturned = next
             return MutableEntry(next)
         }
+
         override fun remove() {
             leafNodesIterator.remove()
             lastReturned?.value?.remove()
@@ -305,13 +321,24 @@ class MutableCategorical<T>: AbstractMutableMap<T,Double> {
     }
 
 
-    override fun toString() : String {
+    override fun toString(): String {
         var s = "(  "
-        for(item in entries) {
+        for (item in entries) {
             s += "${item.key}->${item.value}  "
         }
         s += ")"
         return s
     }
 
+}
+
+
+fun <T> mutableCategoricalOf(vararg categories: Pair<T, Double>): MutableCategorical<T> {
+    val d = MutableCategorical<T>(categories.size)
+    d.createBinaryTree(
+        categories.asSequence().map { it.first }.asIterable(),
+        categories.asSequence().map { it.second }.asIterable(),
+        categories.size
+    )
+    return d
 }
