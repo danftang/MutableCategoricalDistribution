@@ -22,7 +22,6 @@ class testMutableCategoricalWithRotation {
         println(huffRatio)
         assert(abs(huffRatio - 1.0) < 1e-6)
 
-        var total = 0.0
         for (q in 1..1000) {
             val toModify = Random.nextInt(nItems)
             if (Random.nextInt(3) < 2) {
@@ -68,7 +67,6 @@ class testMutableCategoricalWithRotation {
         for (i in 1..nSamples) {
             count[myChoose.sample()]++
         }
-        val p = Array(myChoose.size) {count[it]*1.0/nSamples}
         for(i in 0 until probs.size) {
             val p = count[i]*1.0/nSamples
             assert(abs(p - probs[i]) < 0.001)
