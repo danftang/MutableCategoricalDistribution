@@ -6,8 +6,8 @@ import kotlin.random.Random
 fun main() {
     val nItems = 1000000
     val probs = Array(nItems) { Random.nextDouble() }
-    val categorical = MutableCategorical<Int>(nItems)
-    val categoricalRotate = MutableCategoricalWithRotation<Int>(nItems)
+    val categorical = MutableCategoricalMap<Int>(nItems)
+    val categoricalRotate = MutableCategoricalMapWithRotation<Int>(nItems)
 
     categorical.createHuffmanTree(1..nItems, probs.asList())
     categoricalRotate.createHuffmanTree(1..nItems, probs.asList())

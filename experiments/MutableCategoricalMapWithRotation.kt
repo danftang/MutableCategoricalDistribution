@@ -1,4 +1,4 @@
-class MutableCategoricalWithRotation<T> : MutableCategorical<T> {
+class MutableCategoricalMapWithRotation<T> : MutableCategoricalMap<T> {
     constructor() : super()
     constructor(initialCapacity: Int) : super(initialCapacity)
 

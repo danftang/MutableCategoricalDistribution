@@ -1,18 +1,18 @@
 package test
 
-import MutableCategorical
-import calcHuffmanLength
 import org.junit.Test
 import kotlin.math.abs
 import kotlin.random.Random
+import MutableCategoricalMapWithRotation
+import calcHuffmanLength
 
-class testMutableCategorical {
+class TestMutableCategoricalMapWithRotation {
 
     @Test
     fun testMutability() {
         val nItems = 500
         val probs = Array(nItems) { Random.nextDouble() }
-        val myChoose = MutableCategorical<Int>(nItems)
+        val myChoose = MutableCategoricalMapWithRotation<Int>(nItems)
         val map = HashMap<Int,Double>(nItems)
         myChoose.createHuffmanTree(1..nItems, probs.asList())
         probs.forEachIndexed {i, v ->
@@ -55,7 +55,7 @@ class testMutableCategorical {
 
     @Test
     fun testSample() {
-        val myChoose = MutableCategorical<Int>()
+        val myChoose = MutableCategoricalMapWithRotation<Int>()
 
         val probs = listOf(0.6, 0.2, 0.1, 0.06, 0.04)
         for(i in 0..4) {
@@ -76,7 +76,7 @@ class testMutableCategorical {
 
     @Test
     fun testCreateBinaryTree() {
-        val myChoose = MutableCategorical<Int>()
+        val myChoose = MutableCategoricalMapWithRotation<Int>()
 
         val probs = listOf(0.6, 0.04, 0.06, 0.2, 0.1)
         // myChoose.createHuffmanTree(0..probs.size, probs)
@@ -96,7 +96,7 @@ class testMutableCategorical {
 
     @Test
     fun testCreateHuffmanTree() {
-        val myChoose = MutableCategorical<Int>()
+        val myChoose = MutableCategoricalMapWithRotation<Int>()
 
         val probs = listOf(0.6, 0.04, 0.06, 0.2, 0.1)
         myChoose.createHuffmanTree(0..probs.size, probs)
@@ -122,7 +122,7 @@ class testMutableCategorical {
 
     @Test
     fun testAddRemove() {
-        val myChoose = MutableCategorical<Int>()
+        val myChoose = MutableCategoricalMapWithRotation<Int>()
 
         myChoose[0] = 0.8
         assert(myChoose.size == 1)

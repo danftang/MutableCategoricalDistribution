@@ -3,7 +3,7 @@ import kotlin.NoSuchElementException
 import kotlin.collections.HashMap
 import kotlin.random.Random
 
-open class MutableCategorical<T> : AbstractMutableMap<T, Double> {
+open class MutableCategoricalMap<T> : AbstractMutableMap<T, Double> {
     private var sumTreeRoot: SumTreeNode<T>? = null
     private val leafNodes: HashMap<T, LeafNode<T>>
 
@@ -275,15 +275,15 @@ open class MutableCategorical<T> : AbstractMutableMap<T, Double> {
 
     inner class MutableEntrySet : AbstractMutableSet<MutableMap.MutableEntry<T, Double>>() {
         override fun add(element: MutableMap.MutableEntry<T, Double>): Boolean {
-            this@MutableCategorical[element.key] = element.value
+            this@MutableCategoricalMap[element.key] = element.value
             return true
         }
 
         override val size: Int
-            get() = this@MutableCategorical.size
+            get() = this@MutableCategoricalMap.size
 
         override fun iterator(): MutableIterator<MutableMap.MutableEntry<T, Double>> =
-                MutableEntryIterator(this@MutableCategorical.leafNodes.iterator())
+                MutableEntryIterator(this@MutableCategoricalMap.leafNodes.iterator())
 
     }
 
@@ -341,8 +341,8 @@ open class MutableCategorical<T> : AbstractMutableMap<T, Double> {
 }
 
 
-fun <T> mutableCategoricalOf(vararg categories: Pair<T, Double>): MutableCategorical<T> {
-    val d = MutableCategorical<T>(categories.size)
+fun <T> mutableCategoricalOf(vararg categories: Pair<T, Double>): MutableCategoricalMap<T> {
+    val d = MutableCategoricalMap<T>(categories.size)
     d.createBinaryTree(
             categories.asSequence().map { it.first }.asIterable(),
             categories.asSequence().map { it.second }.asIterable(),

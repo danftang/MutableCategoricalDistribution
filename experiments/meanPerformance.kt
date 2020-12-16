@@ -19,8 +19,8 @@ fun main() {
 fun calculatePerformance(probGenerator : ()->Double) {
     val nItems = 100000
     val probs = Array(nItems) {probGenerator()}
-    val categorical = MutableCategorical<Int>(nItems)
-    val categoricalRotate = MutableCategoricalWithRotation<Int>(nItems)
+    val categorical = MutableCategoricalMap<Int>(nItems)
+    val categoricalRotate = MutableCategoricalMapWithRotation<Int>(nItems)
 
     categorical.createHuffmanTree(0..2*nItems step 2, probs.asList())
     categoricalRotate.createHuffmanTree(0..2*nItems step 2, probs.asList())
