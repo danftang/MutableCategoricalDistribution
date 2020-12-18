@@ -5,7 +5,12 @@ import kotlin.random.Random
 
 open class MutableCategoricalMap<T> : AbstractMutableMap<T, Double> {
     private var sumTreeRoot: SumTreeNode<T>? = null
-    private val leafNodes: HashMap<T, LeafNode<T>>
+    private val leafNodes: MutableMap<T, LeafNode<T>>
+
+    enum class MapType {
+        HASHMAP,
+        TREEMAP
+    }
 
     override val entries: MutableSet<MutableMap.MutableEntry<T, Double>>
         get() = MutableEntrySet()
@@ -14,13 +19,16 @@ open class MutableCategoricalMap<T> : AbstractMutableMap<T, Double> {
         get() = leafNodes.size
 
 
-    constructor() {
-        leafNodes = HashMap()
+    constructor(underlyingMapType: MapType = MapType.HASHMAP) {
+        leafNodes = when(underlyingMapType) {
+            MapType.HASHMAP -> HashMap()
+            MapType.TREEMAP -> TreeMap()
+        }
     }
 
 
-    constructor(initialCapacity: Int) {
-        leafNodes = HashMap(initialCapacity)
+    constructor(initialHashCapacity: Int) {
+        leafNodes = HashMap(initialHashCapacity)
     }
 
 
