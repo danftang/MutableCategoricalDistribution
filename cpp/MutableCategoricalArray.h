@@ -35,77 +35,53 @@ class MutableCategoricalArray {
         double operator =(double probability) { p.set(i,probability); return probability; }
     };
 
-
     std::vector<double> tree;
     int indexHighestBit;
-    std::uniform_real_distribution<double> uniformDist;
+    static std::uniform_real_distribution<double> uniformDist;
 
 public:
 
 
-    MutableCategoricalArray(int size): tree(size), uniformDist(0.0,1.0) {
+    MutableCategoricalArray(int size): tree(size,0.0) {
         indexHighestBit = highestOneBit(size-1);
     }
 
 
     MutableCategoricalArray(int size, std::function<double(int)> init): MutableCategoricalArray(size) {
-        for(int i=size-1; i>=0; --i) {
-            tree[i] = descendantSum(i) + init(i);
-        }
+        for(int i=size-1; i>=0; --i) tree[i] = descendantSum(i) + init(i);
     }
 
     MutableCategoricalArray(std::initializer_list<double> values): MutableCategoricalArray(values.size()) {
         setAll(values);
     }
 
+    template<typename ITERATOR,
+            typename std::enable_if<
+                    std::is_convertible<
+                            typename std::iterator_traits<ITERATOR>::iterator_category,
+                            std::input_iterator_tag
+                    >::value
+                            >::type>
+    MutableCategoricalArray(ITERATOR begin, ITERATOR end): tree(begin, end) {
+        for(int i=tree.size()-1; i>=0; --i) tree[i] += descendantSum(i);
+    }
+
 
     int size() const { return tree.size(); }
 
-
     // sets the un-normalised probability associated with the supplied index
     EntryRef operator [](int index) { return EntryRef(index, *this); }
-
 
     // returns the un-normalised probability associated with the supplied index.
     double operator [](int index) const { return get(index); }
 
     double get(int index) const { return tree[index] - descendantSum(index); }
 
-    void set(int index, double probability) {
-        double sum = probability;
-        int indexOffset = 1;
-        while((indexOffset & index) == 0 && indexOffset < size()) {
-            int descendantIndex = index + indexOffset;
-            if(descendantIndex < size()) sum += tree[descendantIndex];
-            indexOffset = indexOffset << 1;
-        }
-        double delta = sum - tree[index];
-        int ancestorIndex = index;
-        tree[index] = sum;
-        while(indexOffset < size()) {
-            ancestorIndex = ancestorIndex ^ indexOffset;
-            tree[ancestorIndex] += delta;
-            do {
-                indexOffset = indexOffset << 1;
-            } while((ancestorIndex & indexOffset) == 0 && indexOffset < size());
-        }
-    }
+    void set(int index, double probability);
 
     // draws a sample from the distribution
     template<typename RNG>
-    int operator()(RNG &generator) {
-        int index = 0;
-        double target = uniformDist(generator) * tree[0];
-        int rightChildOffset = indexHighestBit;
-        while(rightChildOffset != 0) {
-            int childIndex = index+rightChildOffset;
-            if(childIndex < size()) {
-                if (tree[childIndex] > target) index += rightChildOffset; else target -= tree[childIndex];
-            }
-            rightChildOffset = rightChildOffset >> 1;
-        }
-        return index;
-    }
+    int operator()(RNG &generator);
 
 
     // Sets the un-normalised probabilities of the first N integers
@@ -125,47 +101,31 @@ public:
         }
     }
 
-
     // the sum of all un-normalised probabilities (doesn't need to be 1.0)
-    double sum() {
-        return tree[0];
-    }
-
+    double sum() { return tree[0]; }
 
     // Returns the normalised probability of the index'th element
-    double P(int index) { return (*this)[index]/sum(); }
-
-
-//    fun asList(): List<Double> {
-//        return object: AbstractList<Double>() {
-//            override val size: Int
-//                get() = this@MutableCategoricalArray.size
-//            override fun get(index: Int) = this@MutableCategoricalArray[index]
-//        }
-//    }
+    double P(int index) { return get(index)/sum(); }
 
 protected:
-
-    double descendantSum(int index) const {
-        int indexOffset = 1;
-        double sum = 0.0;
-        while((indexOffset & index) == 0 && indexOffset < size()) {
-            int descendantIndex = index + indexOffset;
-            if(descendantIndex < size()) sum += tree[descendantIndex];
-            indexOffset = indexOffset << 1;
-        }
-        return sum;
-    }
-
-
-    static int highestOneBit(int i) {
-        i = i | (i >> 1);
-        i = i | (i >> 2);
-        i = i | (i >> 4);
-        i = i | (i >> 8);
-        i = i | (i >> 16);
-        return i - (i >> 1);
-    }
+    double descendantSum(int index) const;
+    static int highestOneBit(int i);
 };
+
+
+template<typename RNG>
+int MutableCategoricalArray::operator()(RNG &generator) {
+    int index = 0;
+    double target = uniformDist(generator) * tree[0];
+    int rightChildOffset = indexHighestBit;
+    while(rightChildOffset != 0) {
+        int childIndex = index+rightChildOffset;
+        if(childIndex < size()) {
+            if (tree[childIndex] > target) index += rightChildOffset; else target -= tree[childIndex];
+        }
+        rightChildOffset = rightChildOffset >> 1;
+    }
+    return index;
+}
 
 #endif //CPP_MUTABLECATEGORICALARRAY_H
