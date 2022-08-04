@@ -10,6 +10,13 @@ class TestMutableCategoricalArray {
 public:
     std::default_random_engine rng;
 
+    void doTest() {
+        testOddCases();
+        testInitialization();
+        testTriangular();
+        testModification();
+    }
+
     void testOddCases() {
         //singleton
         MutableCategoricalArray dist1 {0.1};
@@ -18,18 +25,21 @@ public:
         // zero probs
         MutableCategoricalArray dist2 {0.0, 0.0, 1.0, 0.0, 0.0, 0.0};
         assert(dist2(rng) == 2);
+        std::cout << "Passed OddCases test" << std::endl;
     }
 
     void testInitialization() {
         MutableCategoricalArray myDistribution{0.4,0.6};
         assert(myDistribution[0] == 0.4);
         assert(myDistribution[1] == 0.6);
+        std::cout << "Passed initialisation test" << std::endl;
     }
 //
     void testTriangular() {
         int N = 10;
         MutableCategoricalArray triangularDistribution(N,[](int i) { return i; });
         testDistribution(triangularDistribution, 10000000);
+        std::cout << "Passed Triangular distribution test" << std::endl;
     }
 
     void testModification() {
@@ -45,10 +55,10 @@ public:
             testDistribution(testDist, targetDist, 1000000);
             int index = indexDist(rng);
             double newVal = uniformDist(rng);
-            std::cout << "Modifying " << index << " to " << newVal << std::endl;
             targetDist[index] = newVal;
             testDist[index] = newVal;
         }
+        std::cout << "Passed Modification test" << std::endl;
     }
 
     void testDistribution(MutableCategoricalArray dist, int nSamples) {
@@ -59,7 +69,6 @@ public:
         for(int i=0; i<dist.size(); ++i) {
             double sd = sqrt(nSamples*dist.P(i)*(1.0-dist.P(i)));
             double sampleError = dist.P(i)*nSamples - histogram[i];
-            std::cout << "sample proportion = " << histogram[i]*1.0/nSamples << " sample error = " << sampleError/sd << " standard deviations" << std::endl;
             assert(fabs(sampleError) <= 4.0*sd);
         }
     }
@@ -72,16 +81,6 @@ public:
             assert(fabs(targetPMF[i]/targetSum - dist.P(i)) < 1e-15);
         }
         testDistribution(dist, nSamples);
-//        std::vector<int> histogram(dist.size(),0);
-//        for(int i=0; i<nSamples; ++i) {
-//            histogram[dist(rng)] += 1;
-//        }
-//        for(int i=0; i<dist.size(); ++i) {
-//            double sd = sqrt(nSamples*targetPMF[i]*(1.0-targetPMF[i]));
-//            double sampleError = targetPMF[i]*nSamples - histogram[i];
-//            std::cout << "sample proportion = " << histogram[i]*1.0/nSamples << " sample error = " << sampleError/sd << " standard deviations" << std::endl;
-////            assert(fabs(sampleError) <= 4.0*sd);
-//        }
     }
 
 };

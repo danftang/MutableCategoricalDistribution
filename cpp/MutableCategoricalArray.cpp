@@ -6,8 +6,8 @@
 
 std::uniform_real_distribution<double> MutableCategoricalArray::uniformDist(0.0,1.0);
 
-void MutableCategoricalArray::set(int index, double probability) {
-    double sum = probability;
+void MutableCategoricalArray::set(int index, double weight) {
+    double sum = weight;
     int indexOffset = 1;
     while((indexOffset & index) == 0 && indexOffset < size()) {
         int descendantIndex = index + indexOffset;

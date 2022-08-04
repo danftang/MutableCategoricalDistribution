@@ -6,14 +6,19 @@
 #include <array>
 #include <random>
 
-// Represents a probability distribution over an integer range 0..N
-// Can be treated as an array of doubles, where each double is an
-// (un-normalised) probability for that index.
+// This class represents a probability distribution over an integer range 0..N
+// where each integer is associated with a weight, w_i, proportional to
+// its probability.
+// The class can be used like an array of doubles, where each double is the
+// weight for that index. A random draw from the distribution can be
+// taken using the call operator () with a random number generator (e.g. std::mt19937).
 //
 // Internally this is stored as a binary sum tree. However, we
-// only store sums of nodes that are right hand children. This allows
-// us to map the tree onto an array of doubles. A tree node is mapped to an array entry
-// whose index can be calculated, starting from the most significant bit, by following the sequence
+// only store sums of the root and nodes that are right hand children. This allows
+// us to store the tree in an array of doubles of the same size as the number of leaf nodes
+// while still uniquely specifying the value of every node.
+// A tree node is mapped to an array entry whose index can be calculated,
+// starting from the most significant bit, by following the sequence
 // of left/right (0/1) branches on the path from the root to that node.
 // Since the path must end with a right branch (1) we pad the sequence with
 // zeroes beyond the final right branch to give a unique index.
@@ -69,19 +74,20 @@ public:
 
     int size() const { return tree.size(); }
 
-    // sets the un-normalised probability associated with the supplied index
+    // sets the weight associated with the supplied index
     EntryRef operator [](int index) { return EntryRef(index, *this); }
 
-    // returns the un-normalised probability associated with the supplied index.
+    // returns the weight of the supplied index.
     double operator [](int index) const { return get(index); }
 
+    // gets the weight associated with an index
     double get(int index) const { return tree[index] - descendantSum(index); }
 
-    void set(int index, double probability);
+    // sets the weight associated with an index
+    void set(int index, double weight);
 
-    // draws a sample from the distribution
-    template<typename RNG>
-    int operator()(RNG &generator);
+    // draws a sample from the distribution in proportion to the weights
+    template<typename RNG> int operator()(RNG &generator);
 
 
     // Sets the un-normalised probabilities of the first N integers
@@ -89,7 +95,7 @@ public:
     // time (simce average number of steps is 2 for any size of tree).
     template<typename RANDOMACCESSCONTAINER>
     void setAll(const RANDOMACCESSCONTAINER &values) {
-        for(int i = values.size()-1; i>=0; --i) {
+        for(int i = values.nCategories() - 1; i >= 0; --i) {
             tree[i] = descendantSum(i) + values[i];
         }
     }
@@ -101,7 +107,7 @@ public:
         }
     }
 
-    // the sum of all un-normalised probabilities (doesn't need to be 1.0)
+    // the sum of all weights (doesn't need to be 1.0)
     double sum() { return tree[0]; }
 
     // Returns the normalised probability of the index'th element
