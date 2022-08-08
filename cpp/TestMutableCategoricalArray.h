@@ -5,6 +5,7 @@
 #include <assert.h>
 
 #include "MutableCategoricalArray.h"
+#include "ChiSquaredTest.h"
 
 class TestMutableCategoricalArray {
 public:
@@ -38,7 +39,7 @@ public:
     void testTriangular() {
         int N = 10;
         MutableCategoricalArray triangularDistribution(N,[](int i) { return i; });
-        testDistribution(triangularDistribution, 10000000);
+        testDistribution(triangularDistribution, 1000000);
         std::cout << "Passed Triangular distribution test" << std::endl;
     }
 
@@ -66,11 +67,19 @@ public:
         for(int i=0; i<nSamples; ++i) {
             histogram[dist(rng)] += 1;
         }
+
+        double chiSq = 0.0;
         for(int i=0; i<dist.size(); ++i) {
-            double sd = sqrt(nSamples*dist.P(i)*(1.0-dist.P(i)));
-            double sampleError = dist.P(i)*nSamples - histogram[i];
-            assert(fabs(sampleError) <= 4.0*sd);
+//            double sd = sqrt(nSamples*dist.P(i)*(1.0-dist.P(i)));
+//            double sampleError = dist.P(i)*nSamples - histogram[i];
+//            assert(fabs(sampleError) <= 4.0*sd);
+            double expectedCount = dist.P(i) * nSamples;
+            double sampleError = histogram[i] - expectedCount;
+            double sampleErrorSq = sampleError*sampleError;
+            if(sampleErrorSq > 0.0) chiSq += sampleErrorSq / expectedCount; // deal correctly with case p=0
         }
+
+        assert(!pValueIsLessThan(chiSq, dist.size()-1, 0.0001));
     }
 
     void testDistribution(MutableCategoricalArray dist, std::vector<double> targetPMF, int nSamples) {

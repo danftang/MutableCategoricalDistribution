@@ -9,14 +9,15 @@
 #include <random>
 #include <iostream>
 #include <algorithm>
-#include "MutableCategorical.h"
+#include "MutableCategoricalTree.h"
+#include "ChiSquaredTest.h"
 
 
 class TestMutableCategorical {
 public:
-    MutableCategorical<int> distriburion;
+    MutableCategoricalTree<int> distriburion;
     std::map<int,double>    reference;
-    std::vector<MutableCategorical<int>::iterator> categories;
+    std::vector<MutableCategoricalTree<int>::iterator> categories;
     const int               nInitCategories = 1000;
     std::mt19937            randomSource;
 
@@ -62,11 +63,11 @@ public:
         std::cout << "Successfully deleted all categories" << std::endl;
     }
 
-    bool haveEqualEntries(std::map<int,double> &map, MutableCategorical<int> &distribution) {
+    bool haveEqualEntries(std::map<int,double> &map, MutableCategoricalTree<int> &distribution) {
         if(map.size() != distribution.size()) return false;
         int n = distribution.size();
         double sum = 0.0;
-        for(const MutableCategorical<int>::Category &cat : distribution) {
+        for(const MutableCategoricalTree<int>::Category &cat : distribution) {
             --n;
             auto mapEntry = map.find(cat.value);
             if(mapEntry == map.end() || cat.getWeight() != mapEntry->second) return false;
@@ -77,13 +78,13 @@ public:
         return true;
     }
 
-    bool randomDrawIsCorrect(MutableCategorical<int> &distribution) {
+    bool randomDrawIsCorrect(MutableCategoricalTree<int> &distribution) {
         if(distribution.size() == 0) return distribution.choose() == distribution.end();
         std::map<int,int> count;
         int nDraws = 100000;//distribution.size() * 500;
         for(auto entry: distribution) count[entry.value] = 0;
         for(int draw = 0; draw < nDraws; ++draw) {
-            MutableCategorical<int>::iterator cat = distribution.choose();
+            MutableCategoricalTree<int>::iterator cat = distribution.choose();
             ++count[cat->value];
         }
 
@@ -99,22 +100,7 @@ public:
             if(sampleErrorSq > 0.0) chiSq += sampleErrorSq / expectedCount; // deal correctly with case p=0
         }
 
-        // use this to avoid requiring any external libraries
-        std::chi_squared_distribution<double> chiSqDist(distribution.size() - 1.0);
-        int nDrawsAtLeastAsBadAsSample = 0;
-        const int nChiSqDraws = 100000;
-        for(int i=0; i<nChiSqDraws; ++i) {
-            if(chiSqDist(randomSource) >= chiSq) ++nDrawsAtLeastAsBadAsSample;
-        }
-        double pValue = nDrawsAtLeastAsBadAsSample*1.0/nChiSqDraws;
-        std::cout << "Proportion at least as bad as sample = " << pValue << std::endl;
-        if(pValue < 0.0001) {
-            for(auto entry: distribution) {
-                std::cout << nDraws*entry.getWeight()/distribution.sum() << " " << count[entry.value] << std::endl;
-            }
-            return false;
-        }
-        return true;
+        return !pValueIsLessThan(chiSq, distribution.size()-1, 0.0001);
     }
 
 };

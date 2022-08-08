@@ -26,6 +26,9 @@ void MutableCategoricalArray::set(int index, double weight) {
     }
 }
 
+
+// Calculates the sum of all right children associated with a given node
+// (under left-child deletion).
 double MutableCategoricalArray::descendantSum(int index) const {
     int indexOffset = 1;
     double sum = 0.0;
