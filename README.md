@@ -2,7 +2,7 @@
 
 Here are some C++ and Kotlin classes that can be used to efficiently sample from a *categorical distribution* (sometimes called an *empirical distribution*) which is a probability distribution over a finite number of categories $C_0...C_N$ where each category is associated with a weight $w_i$ and the probability of the $i^{th}$ category is
 
-$$P(C_i) = \frac{w_i}{\sum_{j=0}^N w_j}$$
+$$P(C_i) = \frac{w_i}{\sum_j w_j}$$
 
 Unlike existing library implementations, these classes allow the weights to be modified in O(log(n)) time (instead of O(n) time), while maintining sampling in O(log(n)) time. If you're happy for your categories to be labelled by the integers 0...N then use `MutableCategoricalArray`, whereas if you want to label the categories with objects of some arbitrary class then use `MutableCategorical` or `MutableCategoricalMap`. The Arrray class is faster than the Map, so use that where possible (only the highest index category can be removed from a `MutableCategoricalArray` but the weight of any category can be set to zero to effectively remove it).
  
