@@ -25,4 +25,5 @@ hs_err_pid*
 kotlin/.idea/
 kotlin/out/
 cpp/.idea/
-cpp/cmake-build-debug/
+cpp/cmake-build-*
+
