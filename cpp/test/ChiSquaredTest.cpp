@@ -21,6 +21,11 @@ bool pValueIsLessThan(double chiSquared, int nDegreesOfFreedom, double pValue) {
         if(chiSqDist(randomSource) >= chiSquared) ++nSamplesAsBadAsMeasurement;
         ++nSamples;
     }
-    std::cout << "chiSq = " << chiSquared << " k = " << nDegreesOfFreedom << " p-value = " << nSamplesAsBadAsMeasurement * 1.0 / nSamples << std::endl;
-    return (nSamples > maxSamples);
+//    std::cout << "chiSq = " << chiSquared << " k = " << nDegreesOfFreedom << " p-value = " << nSamplesAsBadAsMeasurement * 1.0 / nSamples << std::endl;
+    if(nSamples > maxSamples) {
+        std::cout << "Failed Pearson's Chi squared test on " << nDegreesOfFreedom+1 << " random draws. "
+                  << "Lower than 0.01% chance that the draw came from the expected distribution." << std::endl;
+        return true;
+    }
+    return false;
 }

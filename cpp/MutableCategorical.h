@@ -24,6 +24,9 @@ protected:
     std::vector<T>          categoryLabels;
 
 public:
+    typedef T value_type;
+    typedef typename std::vector<T>::iterator iterator;
+    typedef typename std::vector<T>::const_iterator const_iterator;
 
     MutableCategorical() {}
 
@@ -40,15 +43,23 @@ public:
 
     void add(const T &categoryLabel, double weight);
     void add(T &&categoryLabel, double weight);
-    void erase(typename std::vector<T>::iterator category);
-    template<class RNG> typename std::vector<T>::iterator operator()(RNG &randomGenerator) {
+    void erase(iterator category);
+    void set(iterator category, double weight);
+    double weight(const_iterator category) const { return mca[category - categoryLabels.begin()]; }
+    double probability(const_iterator category) const { return weight(category)/sum(); }
+    double sum() const { return mca.sum(); }
+    iterator begin() { return categoryLabels.begin(); }
+    iterator end()   { return categoryLabels.end(); }
+    iterator begin() const { return categoryLabels.begin(); }
+    iterator end()   const { return categoryLabels.end(); }
+    int size() const { return categoryLabels.size(); }
+    template<class RNG> iterator operator()(RNG &randomGenerator) {
         return categoryLabels.begin() + mca(randomGenerator);
     }
-    template<class RNG> typename std::vector<T>::const_iterator operator()(RNG &randomGenerator) const {
+    template<class RNG> const_iterator operator()(RNG &randomGenerator) const {
         return categoryLabels.begin() + mca(randomGenerator);
     }
 
-    int size() const { return categoryLabels.size(); }
 
     friend std::ostream &operator <<(std::ostream &out, const MutableCategorical<T> &distribution) {
         for(int i=0; i<distribution.size(); ++i) {
@@ -58,6 +69,8 @@ public:
     }
 };
 
+// invalidates the iterator to the last element, iterator to the erased element
+// becomes iterator to what was the last element...
 template<class T>
 void MutableCategorical<T>::erase(typename std::vector<T>::iterator category) {
     int categoryIndex = category - categoryLabels.begin();
@@ -82,15 +95,10 @@ void MutableCategorical<T>::add(T &&categoryLabel, double weight) {
     categoryLabels.push_back(std::move(categoryLabel));
 }
 
+template<class T>
+void MutableCategorical<T>::set(iterator category, double weight) {
+    mca.set(category - categoryLabels.begin(), weight);
+}
 
-//template<class T>
-//std::ostream &operator <<(std::ostream &out, const MutableCategorical<T> &distribution) {
-//    auto weightIt = distribution.mca.begin();
-//    auto categoryIt = distribution.categoryLabels.begin();
-//    while(weightIt != distribution.mca.end()) {
-//        out << *categoryIt++ << " -> " << *weightIt++ << std::endl;
-//    }
-//    return out;
-//}
 
 #endif //CPP_MUTABLECATEGORICAL_H

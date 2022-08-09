@@ -13,15 +13,15 @@
 // using category.setWeight(), or a category can be drawn at random using the
 // call operator (), all in O(log(N)) time.
 // The sum of all weights can be accessed in O(1) time using sum()
-#ifndef CPP_MUTABLECATEGORICALTREE_H
-#define CPP_MUTABLECATEGORICALTREE_H
+#ifndef CPP_MUTABLECATEGORICALMAP_H
+#define CPP_MUTABLECATEGORICALMAP_H
 
 #include <assert.h>
 #include <deque>
 #include <random>
 
 template<class T>
-class MutableCategoricalTree {
+class MutableCategoricalMap {
 protected:
     static std::mt19937 random;
 
@@ -86,12 +86,12 @@ public:
         Category(V &&categoryValue, SumTreeNode *parent, double probability) :
                 value(std::forward<V>(categoryValue)), SumTreeNode(parent, nullptr, nullptr, probability) { }
 
-
+        T value;
         double getWeight() const { return this->sum; }
         void setWeight(double w) { this->sum = w; this->updateAncestorSums(); }
-        T value;
-
-        friend class MutableCategoricalTree<T>;
+        operator T() { return value; }
+        operator const T() const { return value; }
+        friend class MutableCategoricalMap<T>;
 
     protected:
         SumTreeNode *nodePtr() { return this; }
@@ -111,17 +111,19 @@ public:
     };
 
 
-    MutableCategoricalTree(): rootNode(nullptr), nCategories(0) {
+    MutableCategoricalMap(): rootNode(nullptr), nCategories(0) {
     }
 
-    ~MutableCategoricalTree() { clear(); }
+    ~MutableCategoricalMap() { clear(); }
 
     iterator add(const T &categoryValue, double probability);
     iterator erase(const_iterator category);
-    template<typename RNG = decltype(random)> iterator choose(RNG &randomGenerator=random) { return choose<iterator>(*this, randomGenerator); }
-    template<typename RNG = decltype(random)> const_iterator choose(RNG &randomGenerator=random) const { return choose<const_iterator>(*this, randomGenerator); }
+    template<typename RNG = decltype(random)> iterator operator ()(RNG &randomGenerator=random) { return choose<iterator>(*this, randomGenerator); }
+    template<typename RNG = decltype(random)> const_iterator operator()(RNG &randomGenerator=random) const { return choose<const_iterator>(*this, randomGenerator); }
     double sum() const { return (rootNode == nullptr)?0.0:rootNode->sum; }
     double probability(const_iterator category) const { return category->getWeight()/sum(); }
+    static double weight(const_iterator category) { return category->getWeight(); }
+    static void set(iterator category, double weight) { category->setWeight(weight); }
     iterator begin();
     iterator end();
     const_iterator begin() const;
@@ -141,7 +143,7 @@ protected:
 
 template<class T>
 template<class V>
-typename MutableCategoricalTree<T>::template iterator_base<V> &MutableCategoricalTree<T>::iterator_base<V>::operator++() {
+typename MutableCategoricalMap<T>::template iterator_base<V> &MutableCategoricalMap<T>::iterator_base<V>::operator++() {
     if(ptr == nullptr) return *this;
     auto currentNode = ptr->nodePtr();
     while(currentNode->parent != nullptr && currentNode->parent->rightChild == currentNode) {
@@ -163,7 +165,7 @@ typename MutableCategoricalTree<T>::template iterator_base<V> &MutableCategorica
 // navigate down the tree, taking always the lower sum child until sum is less than
 // the probability to add, or we reach a leaf.
 template<class T>
-typename MutableCategoricalTree<T>::iterator MutableCategoricalTree<T>::add(const T &categoryValue, double probability) {
+typename MutableCategoricalMap<T>::iterator MutableCategoricalMap<T>::add(const T &categoryValue, double probability) {
     Category *newLeaf = new Category(categoryValue, nullptr, probability);
     if(rootNode == nullptr) {
         rootNode = newLeaf;
@@ -186,7 +188,7 @@ typename MutableCategoricalTree<T>::iterator MutableCategoricalTree<T>::add(cons
 // node (right child) and the insertion point (left child) and whose parent is the original
 // parent of insertionPoint
 template<class T>
-void MutableCategoricalTree<T>::insert(SumTreeNode &newNode, SumTreeNode &insertionPoint) {
+void MutableCategoricalMap<T>::insert(SumTreeNode &newNode, SumTreeNode &insertionPoint) {
     SumTreeNode *newParent = new SumTreeNode(insertionPoint.parent, &insertionPoint, &newNode, insertionPoint.sum + newNode.sum);
     insertionPoint.parent = newParent;
     newNode.parent = newParent;
@@ -200,7 +202,7 @@ void MutableCategoricalTree<T>::insert(SumTreeNode &newNode, SumTreeNode &insert
 
 
 template<class T>
-void MutableCategoricalTree<T>::SumTreeNode::updateAncestorSums() {
+void MutableCategoricalMap<T>::SumTreeNode::updateAncestorSums() {
     SumTreeNode *currentNode = parent;
     while(currentNode != nullptr) {
         currentNode->updateSum();
@@ -229,7 +231,7 @@ void MutableCategoricalTree<T>::SumTreeNode::updateAncestorSums() {
 
 template<class T>
 template<class R, class V, class G>
-R MutableCategoricalTree<T>::choose(V &distribution, G &randomGenerator) {
+R MutableCategoricalMap<T>::choose(V &distribution, G &randomGenerator) {
     if(distribution.rootNode == nullptr) return distribution.end();
     double target = std::uniform_real_distribution<double>()(randomGenerator) * distribution.rootNode->sum;
     SumTreeNode *currentNode = distribution.rootNode;
@@ -248,7 +250,7 @@ R MutableCategoricalTree<T>::choose(V &distribution, G &randomGenerator) {
 // replacing it with its sibling. Returns an iterator pointing to the
 // element after the one removed.
 template<class T>
-typename MutableCategoricalTree<T>::iterator MutableCategoricalTree<T>::erase(MutableCategoricalTree<T>::const_iterator categoryIt) {
+typename MutableCategoricalMap<T>::iterator MutableCategoricalMap<T>::erase(MutableCategoricalMap<T>::const_iterator categoryIt) {
     iterator nextIterator(const_cast<Category *>(categoryIt.ptr));
     ++nextIterator;
     SumTreeNode *parentToRemove = categoryIt->parent;
@@ -271,7 +273,7 @@ typename MutableCategoricalTree<T>::iterator MutableCategoricalTree<T>::erase(Mu
 }
 
 template<class T>
-typename MutableCategoricalTree<T>::iterator MutableCategoricalTree<T>::begin() {
+typename MutableCategoricalMap<T>::iterator MutableCategoricalMap<T>::begin() {
     if(rootNode == nullptr) return iterator(nullptr);
     SumTreeNode *currentNode = rootNode;
     while(!currentNode->isLeaf()) currentNode = currentNode->leftChild;
@@ -279,12 +281,12 @@ typename MutableCategoricalTree<T>::iterator MutableCategoricalTree<T>::begin() 
 }
 
 template<class T>
-typename MutableCategoricalTree<T>::iterator MutableCategoricalTree<T>::end() {
-    return MutableCategoricalTree::iterator(nullptr);
+typename MutableCategoricalMap<T>::iterator MutableCategoricalMap<T>::end() {
+    return MutableCategoricalMap::iterator(nullptr);
 }
 
 template<class T>
-typename MutableCategoricalTree<T>::const_iterator MutableCategoricalTree<T>::begin() const {
+typename MutableCategoricalMap<T>::const_iterator MutableCategoricalMap<T>::begin() const {
     if(rootNode == nullptr) return const_iterator(nullptr);
     SumTreeNode *currentNode = rootNode;
     while(!currentNode->isLeaf()) currentNode = currentNode->leftChild;
@@ -292,13 +294,13 @@ typename MutableCategoricalTree<T>::const_iterator MutableCategoricalTree<T>::be
 }
 
 template<class T>
-typename MutableCategoricalTree<T>::const_iterator MutableCategoricalTree<T>::end() const {
-    return MutableCategoricalTree::const_iterator(nullptr);
+typename MutableCategoricalMap<T>::const_iterator MutableCategoricalMap<T>::end() const {
+    return MutableCategoricalMap::const_iterator(nullptr);
 }
 
 
 template<class T>
-void MutableCategoricalTree<T>::clear() {
+void MutableCategoricalMap<T>::clear() {
     if(rootNode == nullptr) return;
     std::deque<SumTreeNode *> nodesToDelete;
     nodesToDelete.push_back(rootNode);
@@ -315,13 +317,13 @@ void MutableCategoricalTree<T>::clear() {
 }
 
 template<class T>
-std::ostream &operator<<(std::ostream &out, const MutableCategoricalTree<T> &mutableCategorical) {
-    for(const typename MutableCategoricalTree<T>::Category &category : mutableCategorical) {
+std::ostream &operator<<(std::ostream &out, const MutableCategoricalMap<T> &mutableCategorical) {
+    for(const typename MutableCategoricalMap<T>::Category &category : mutableCategorical) {
         out << category.value << " -> " << category.getWeight() << std::endl;
     }
     return out;
 }
 
-template<class T> std::mt19937 MutableCategoricalTree<T>::random;
+template<class T> std::mt19937 MutableCategoricalMap<T>::random;
 
-#endif //CPP_MUTABLECATEGORICALTREE_H
+#endif //CPP_MUTABLECATEGORICALMAP_H

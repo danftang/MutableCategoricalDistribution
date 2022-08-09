@@ -3,15 +3,17 @@
 //
 // P(i) = w_i / \sum_j w_j
 //
-// Like an array, the weights can be read and modified using the bracket operator [],
-// or alternatively by using the get() and set() member functions.
+// The weights can be read and modified using the bracket operator [],
+// or alternatively by using the get() and set() member functions. Modification runs in
+// O(log(N)) time while reading takes amortized O(1) time and worst case O(log(N)) time.
+// The size of the array can be increased or decreased in O(log(N)) time with push_back()
+// and pop_back().
 //
 // A random draw from the distribution can be taken using the call operator () with
-// a random number generator (e.g. std::mt19937).
+// a random number generator (e.g. std::mt19937). This also runs in O(log(N)) time.
 //
 // The sum of all weights can be accessed in O(1) time using sum()
 //
-// Reading, modification and random draw takes O(log(N)) time.
 // If all probabilities need modifying simultaneously, this can be done in O(N) time using
 // the setAll method.
 //
@@ -19,17 +21,19 @@
 // only store sums for the root node and nodes that are right-hand children. This allows
 // us to store the tree in an array of doubles of the same size as the number of leaf nodes
 // while still uniquely identifying the complete binary tree.
-// Given a binary sum tree whose leaves are all at the same level, each node
-// that is a right child can be associated with the leaf that is reached by taking
-// only left children from that node. So, given an array, each right child in a sum tree
-// can be mapped to an entry whose index can be calculated,
+// This is done by noting that the binary tree has leaves that are all at the same level, and
+// that the leaf nodes can be mapped to the integers 0...N by choosing the integer whose binary
+// digits correspond to the sequence of left/right (0/1) branches on the path from root to leaf.
+// Each node that is a right child is then associated with the leaf that is reached by taking
+// only left children from that node. So, given an array, each right child
+// in a sum tree can be mapped to an array entry whose index can be calculated,
 // starting from the most significant bit, by following the sequence
 // of left/right (0/1) branches on the path from the root to that node, then taking only
-// left children. Since the path to a node must end with a right branch (1) each index
-// also maps to a unique right child.
+// left children to the associated leaf. Since the path to a node must end with a right branch (1)
+// each array entry also maps to a unique right child, so we have a unique one-one mapping.
 //
 // This encoding allows arrays of any size (not just integer multiples of 2)
-// and allows modification of probabilities and sampling in O(log(N)) time.
+// and allows very efficient modification of probabilities and sampling in O(log(N)) time.
 #ifndef CPP_MUTABLECATEGORICALARRAY_H
 #define CPP_MUTABLECATEGORICALARRAY_H
 
@@ -57,7 +61,6 @@ class MutableCategoricalArray {
 
     std::vector<double> tree;
     int indexHighestBit;         // 2^(number of bits necessary to hold the highest index in tree).
-    static std::uniform_real_distribution<double> uniformDist;
 
 public:
 
@@ -116,7 +119,26 @@ public:
     double get(int index) const { return tree[index] - descendantSum(index); }
 
     // sets the weight associated with an index
-    void set(int index, double weight);
+    void set(int index, double weight) {
+        double sum = weight;
+        int indexOffset = 1;
+        while((indexOffset & index) == 0 && indexOffset < size()) {
+            int descendantIndex = index + indexOffset;
+            if(descendantIndex < size()) sum += tree[descendantIndex];
+            indexOffset = indexOffset << 1;
+        }
+        double delta = sum - tree[index];
+        int ancestorIndex = index;
+        tree[index] = sum;
+        while(indexOffset < size()) {
+            ancestorIndex = ancestorIndex ^ indexOffset;
+            tree[ancestorIndex] += delta;
+            do {
+                indexOffset = indexOffset << 1;
+            } while((ancestorIndex & indexOffset) == 0 && indexOffset < size());
+        }
+    }
+
 
     // draws a sample from the distribution in proportion to the weights
     template<typename RNG> int operator()(RNG &generator) const;
@@ -140,10 +162,10 @@ public:
     }
 
     // the sum of all weights (doesn't need to be 1.0)
-    double sum() const { return tree[0]; }
+    double sum() const { return size()==0?0.0:tree[0]; }
 
     // Returns the normalised probability of the index'th element
-    double P(int index) const { return get(index)/sum(); }
+    double P(int index) const { return get(index) / sum(); }
 
     friend std::ostream &operator <<(std::ostream &out, const MutableCategoricalArray &distribution) {
         for(int i=0; i<distribution.tree.size(); ++i) {
@@ -153,15 +175,35 @@ public:
     }
 
 protected:
-    double descendantSum(int index) const;
-    static int highestOneBit(int i);
+
+    // Calculates the sum of all right children associated with a given node
+    // (under left-child deletion).
+    double descendantSum(int index) const {
+        int indexOffset = 1;
+        double sum = 0.0;
+        while((indexOffset & index) == 0 && indexOffset < size()) {
+            int descendantIndex = index + indexOffset;
+            if(descendantIndex < size()) sum += tree[descendantIndex];
+            indexOffset = indexOffset << 1;
+        }
+        return sum;
+    }
+
+    static int highestOneBit(int i) {
+        i = i | (i >> 1);
+        i = i | (i >> 2);
+        i = i | (i >> 4);
+        i = i | (i >> 8);
+        i = i | (i >> 16);
+        return i - (i >> 1);
+    }
 };
 
 
 template<typename RNG>
 int MutableCategoricalArray::operator()(RNG &generator) const {
     int index = 0;
-    double target = uniformDist(generator) * tree[0];
+    double target = std::uniform_real_distribution<double>(0.0, sum())(generator);
     int rightChildOffset = indexHighestBit;
     while(rightChildOffset != 0) {
         int childIndex = index+rightChildOffset;

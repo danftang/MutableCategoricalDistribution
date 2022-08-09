@@ -4,7 +4,7 @@
 
 #include <assert.h>
 
-#include "MutableCategoricalArray.h"
+#include "../MutableCategoricalArray.h"
 #include "ChiSquaredTest.h"
 
 class TestMutableCategoricalArray {
@@ -53,7 +53,7 @@ public:
         }
         MutableCategoricalArray testDist(N, [&targetDist](int i){ return targetDist[i]; });
         for(int i=0; i<100; ++i) {
-            testDistribution(testDist, targetDist, 1000000);
+            testDistribution(testDist, targetDist, 100000);
             int index = indexDist(rng);
             double newVal = uniformDist(rng);
             targetDist[index] = newVal;
@@ -70,9 +70,6 @@ public:
 
         double chiSq = 0.0;
         for(int i=0; i<dist.size(); ++i) {
-//            double sd = sqrt(nSamples*dist.P(i)*(1.0-dist.P(i)));
-//            double sampleError = dist.P(i)*nSamples - histogram[i];
-//            assert(fabs(sampleError) <= 4.0*sd);
             double expectedCount = dist.P(i) * nSamples;
             double sampleError = histogram[i] - expectedCount;
             double sampleErrorSq = sampleError*sampleError;
