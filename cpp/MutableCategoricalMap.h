@@ -76,7 +76,9 @@ protected:
         iterator_base<V> operator ++(int) { iterator preIncrementVal(ptr); ++(*this); return preIncrementVal; }
         bool operator ==(const iterator_base<V> &other) const { return ptr == other.ptr; }
         bool operator !=(const iterator_base<V> &other) const { return ptr != other.ptr; }
+        operator iterator_base<const V>() { return iterator_base<const V>(ptr); }
     };
+
 
 
 public:
@@ -99,17 +101,8 @@ public:
 
     };
 
-    class iterator: public iterator_base<Category> {
-    public:
-        explicit iterator(Category *ptr): iterator_base<Category>(ptr) {}
-    };
-
-    class const_iterator: public iterator_base<const Category> {
-    public:
-        const_iterator(const Category *ptr): iterator_base<const Category>(ptr) {}
-        const_iterator(iterator it): iterator_base<const Category>(it.ptr) {}
-    };
-
+    typedef iterator_base<Category>         iterator;
+    typedef iterator_base<const Category>   const_iterator;
 
     MutableCategoricalMap(): rootNode(nullptr), nCategories(0) {
     }
@@ -211,23 +204,6 @@ void MutableCategoricalMap<T>::SumTreeNode::updateAncestorSums() {
 }
 
 
-// Choose a category at random, according to the category probabilities
-//template<class T>
-//template<typename RNG>
-//typename MutableCategorical<T>::const_iterator MutableCategorical<T>::choose(RNG &randomGenerator) const {
-//    if(rootNode == nullptr) return end();
-//    double target = std::uniform_real_distribution<double>()(randomGenerator) * rootNode->sum;
-//    const SumTreeNode *currentNode = rootNode;
-//    while(!currentNode->isLeaf()) {
-//        if (currentNode->leftChild->sum > target) {
-//            currentNode = currentNode->leftChild;
-//        } else {
-//            target -= currentNode->leftChild->sum;
-//            currentNode = currentNode->rightChild;
-//        }
-//    }
-//    return static_cast<const Category *>(currentNode);
-//}
 
 template<class T>
 template<class R, class V, class G>

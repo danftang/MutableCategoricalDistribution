@@ -19,7 +19,7 @@ class TestMutableCategorical {
 public:
     DIST                    distribution;
     std::map<int,double>    reference;
-    const int               nInitCategories = 100000;
+    const int               nInitCategories = 1000;
     std::mt19937            randomSource;
 
 

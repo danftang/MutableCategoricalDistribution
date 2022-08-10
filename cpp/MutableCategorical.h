@@ -20,30 +20,52 @@
 
 template<class T>
 class MutableCategorical {
-public:
+protected:
 
     class Category {
     public:
         T value;
-        friend class MutableCategorical<T>;
 
         operator const T &() const { return value; }
         operator T &() & { return value; }
         operator T &&() && { return std::move(value); }
-    protected:
+
         Category(const T &v, int index) : value(v), index(index) {}
         Category(T &&v, int index) : value(std::move(v)), index(index) {}
         int index;
     };
 
-    MutableCategoricalArray mca;
-    std::vector<typename std::list<Category>::iterator> indexToCategory;
-    std::list<Category>     categories;
+
+    template<class V>
+    class iterator_base {
+    public:
+
+        iterator_base(V ptr): ptr(ptr) {}
+
+        auto operator *()  { return ptr->value; }
+        auto operator ->() { return &ptr->value; }
+        iterator_base<V> &operator ++() { ++ptr; return *this; }
+        iterator_base<V> operator ++(int) { return ptr++; }
+        bool operator ==(const iterator_base<V> &other) const { return ptr == other.ptr; }
+        bool operator !=(const iterator_base<V> &other) const { return ptr != other.ptr; }
+        operator iterator_base<typename std::list<Category>::const_iterator>() { return iterator_base<typename std::list<Category>::const_iterator>(ptr); }
+
+    protected:
+        V ptr;
+        auto &index() { return ptr->index; }
+        friend class MutableCategorical<T>;
+    };
+
 
 public:
     typedef T value_type;
-    typedef typename std::list<Category>::iterator iterator;
-    typedef typename std::list<Category>::const_iterator const_iterator;
+    typedef iterator_base<typename std::list<Category>::iterator>        iterator;
+    typedef iterator_base<typename std::list<Category>::const_iterator>  const_iterator;
+
+    MutableCategoricalArray mca;
+    std::vector<iterator>   indexToCategory;
+    std::list<Category>     categories;
+
 
     MutableCategorical() {}
 
@@ -61,7 +83,7 @@ public:
     iterator add(T &&categoryLabel, double weight);
     iterator erase(iterator category);
     void set(iterator category, double weight);
-    double weight(const_iterator category) const { return mca[category->index]; }
+    double weight(const_iterator category) const { return mca[category.index()]; }
     double probability(const_iterator category) const { return weight(category)/sum(); }
     double sum() const { return mca.sum(); }
     iterator begin() { return categories.begin(); }
@@ -92,17 +114,17 @@ public:
 // returns an iterator to the element after the erased element.
 template<class T>
 typename MutableCategorical<T>::iterator MutableCategorical<T>::erase(iterator category) {
-    int categoryIndexToErase = category->index;
+    int categoryIndexToErase = category.index();
     int lastCategoryIndex = size() - 1;
     if(categoryIndexToErase != lastCategoryIndex) {
         mca.set(categoryIndexToErase, mca[lastCategoryIndex]);
         iterator categoryToReindex = indexToCategory[lastCategoryIndex];
         indexToCategory[categoryIndexToErase] = categoryToReindex;
-        categoryToReindex->index = categoryIndexToErase;
+        categoryToReindex.index() = categoryIndexToErase;
     }
     mca.pop_back();
     indexToCategory.pop_back();
-    return categories.erase(category);
+    return categories.erase(category.ptr);
 }
 
 template<class T>
@@ -123,7 +145,7 @@ typename MutableCategorical<T>::iterator MutableCategorical<T>::add(T &&category
 
 template<class T>
 void MutableCategorical<T>::set(iterator category, double weight) {
-    mca.set(category->index, weight);
+    mca.set(category.index(), weight);
 }
 
 
