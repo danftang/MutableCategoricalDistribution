@@ -15,49 +15,68 @@
 #ifndef CPP_MUTABLECATEGORICAL_H
 #define CPP_MUTABLECATEGORICAL_H
 
+#include <list>
 #include "MutableCategoricalArray.h"
 
 template<class T>
 class MutableCategorical {
-protected:
+public:
+
+    class Category {
+    public:
+        T value;
+        friend class MutableCategorical<T>;
+
+        operator const T &() const { return value; }
+        operator T &() & { return value; }
+        operator T &&() && { return std::move(value); }
+    protected:
+        Category(const T &v, int index) : value(v), index(index) {}
+        Category(T &&v, int index) : value(std::move(v)), index(index) {}
+        int index;
+    };
+
     MutableCategoricalArray mca;
-    std::vector<T>          categoryLabels;
+    std::vector<typename std::list<Category>::iterator> indexToCategory;
+    std::list<Category>     categories;
 
 public:
     typedef T value_type;
-    typedef typename std::vector<T>::iterator iterator;
-    typedef typename std::vector<T>::const_iterator const_iterator;
+    typedef typename std::list<Category>::iterator iterator;
+    typedef typename std::list<Category>::const_iterator const_iterator;
 
     MutableCategorical() {}
 
     MutableCategorical(int size, std::function<std::pair<T,double>(int)> init) {
         mca.reserve(size);
-        categoryLabels.reserve(size);
+        indexToCategory.reserve(size);
         for(int i=size-1; i>=0; --i) {
             std::pair<T,double> v = init(i);
-            mca.push_back(v.second);
-            categoryLabels.push_back(std::move(v.first));
+            add(std::move(v.first), v.second);
         }
     }
 
 
-    void add(const T &categoryLabel, double weight);
-    void add(T &&categoryLabel, double weight);
-    void erase(iterator category);
+    iterator add(const T &categoryLabel, double weight);
+    iterator add(T &&categoryLabel, double weight);
+    iterator erase(iterator category);
     void set(iterator category, double weight);
-    double weight(const_iterator category) const { return mca[category - categoryLabels.begin()]; }
+    double weight(const_iterator category) const { return mca[category->index]; }
     double probability(const_iterator category) const { return weight(category)/sum(); }
     double sum() const { return mca.sum(); }
-    iterator begin() { return categoryLabels.begin(); }
-    iterator end()   { return categoryLabels.end(); }
-    iterator begin() const { return categoryLabels.begin(); }
-    iterator end()   const { return categoryLabels.end(); }
-    int size() const { return categoryLabels.size(); }
+    iterator begin() { return categories.begin(); }
+    iterator end()   { return categories.end(); }
+    const_iterator begin() const { return categories.begin(); }
+    const_iterator end()   const { return categories.end(); }
+    size_t size() const { return indexToCategory.size(); }
+    void reserve(size_t size) { indexToCategory.reserve(size); mca.reserve(size); }
     template<class RNG> iterator operator()(RNG &randomGenerator) {
-        return categoryLabels.begin() + mca(randomGenerator);
+        if(size() == 0) return categories.end();
+        return indexToCategory[mca(randomGenerator)];
     }
     template<class RNG> const_iterator operator()(RNG &randomGenerator) const {
-        return categoryLabels.begin() + mca(randomGenerator);
+        if(size() == 0) return categories.end();
+        return indexToCategory[mca(randomGenerator)];
     }
 
 
@@ -69,35 +88,42 @@ public:
     }
 };
 
-// invalidates the iterator to the last element, iterator to the erased element
-// becomes iterator to what was the last element...
+// invalidates the erased iterator.
+// returns an iterator to the element after the erased element.
 template<class T>
-void MutableCategorical<T>::erase(typename std::vector<T>::iterator category) {
-    int categoryIndex = category - categoryLabels.begin();
+typename MutableCategorical<T>::iterator MutableCategorical<T>::erase(iterator category) {
+    int categoryIndexToErase = category->index;
     int lastCategoryIndex = size() - 1;
-    if(categoryIndex != lastCategoryIndex) {
-        mca.set(categoryIndex, mca[lastCategoryIndex]);
-        categoryLabels[categoryIndex] = std::move(categoryLabels[lastCategoryIndex]);
+    if(categoryIndexToErase != lastCategoryIndex) {
+        mca.set(categoryIndexToErase, mca[lastCategoryIndex]);
+        iterator categoryToReindex = indexToCategory[lastCategoryIndex];
+        indexToCategory[categoryIndexToErase] = categoryToReindex;
+        categoryToReindex->index = categoryIndexToErase;
     }
     mca.pop_back();
-    categoryLabels.pop_back();
+    indexToCategory.pop_back();
+    return categories.erase(category);
 }
 
 template<class T>
-void MutableCategorical<T>::add(const T &categoryLabel, double weight) {
+typename MutableCategorical<T>::iterator MutableCategorical<T>::add(const T &categoryLabel, double weight) {
     mca.push_back(weight);
-    categoryLabels.push_back(categoryLabel);
+    categories.push_front(Category(categoryLabel, mca.size()-1));
+    indexToCategory.push_back(categories.begin());
+    return categories.begin();
 }
 
 template<class T>
-void MutableCategorical<T>::add(T &&categoryLabel, double weight) {
+typename MutableCategorical<T>::iterator MutableCategorical<T>::add(T &&categoryLabel, double weight) {
     mca.push_back(weight);
-    categoryLabels.push_back(std::move(categoryLabel));
+    categories.push_front(Category(std::move(categoryLabel), mca.size()-1));
+    indexToCategory.push_back(categories.begin());
+    return categories.begin();
 }
 
 template<class T>
 void MutableCategorical<T>::set(iterator category, double weight) {
-    mca.set(category - categoryLabels.begin(), weight);
+    mca.set(category->index, weight);
 }
 
 

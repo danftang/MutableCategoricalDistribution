@@ -19,7 +19,7 @@ class TestMutableCategorical {
 public:
     DIST                    distribution;
     std::map<int,double>    reference;
-    const int               nInitCategories = 1000;
+    const int               nInitCategories = 100000;
     std::mt19937            randomSource;
 
 
@@ -111,7 +111,7 @@ public:
         // hypothesis that the draws came from the correct distribution
         double chiSq = 0.0;
         for(auto it = distribution.begin(); it != distribution.end(); ++it) {
-            double p = distribution.P(it);
+            double p = distribution.probability(it);
             double expectedCount = p * nDraws;
             double sampleError = count[*it] - expectedCount;
             double sampleErrorSq = sampleError*sampleError;
