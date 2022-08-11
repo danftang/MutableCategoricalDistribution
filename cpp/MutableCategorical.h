@@ -42,8 +42,8 @@ protected:
 
         iterator_base(V ptr): ptr(ptr) {}
 
-        auto operator *()  { return ptr->value; }
-        auto operator ->() { return &ptr->value; }
+        auto &operator *()  { return ptr->value; }
+        auto *operator ->() { return &ptr->value; }
         iterator_base<V> &operator ++() { ++ptr; return *this; }
         iterator_base<V> operator ++(int) { return ptr++; }
         bool operator ==(const iterator_base<V> &other) const { return ptr == other.ptr; }
