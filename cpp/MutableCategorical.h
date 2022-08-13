@@ -32,6 +32,9 @@ protected:
 
         Category(const T &v, int index) : value(v), index(index) {}
         Category(T &&v, int index) : value(std::move(v)), index(index) {}
+        template<class...ARGS>
+        explicit Category(int index, ARGS&&... args): value(std::forward<ARGS>(args)...), index(index) { }
+
         int index;
     };
 
@@ -81,6 +84,7 @@ public:
 
     iterator add(const T &categoryLabel, double weight);
     iterator add(T &&categoryLabel, double weight);
+    template<class... ARGS> iterator emplace(double weight, ARGS&&... args);
     iterator erase(iterator category);
     void set(iterator category, double weight);
     double weight(const_iterator category) const { return mca[category.index()]; }
@@ -146,6 +150,17 @@ typename MutableCategorical<T>::iterator MutableCategorical<T>::add(T &&category
 template<class T>
 void MutableCategorical<T>::set(iterator category, double weight) {
     mca.set(category.index(), weight);
+}
+
+
+// args should be the arguments to a constructor of T
+template<class T>
+template<class... ARGS>
+typename MutableCategorical<T>::iterator MutableCategorical<T>::emplace(double weight, ARGS &&... args) {
+    mca.push_back(weight);
+    categories.emplace_front(mca.size()-1, std::forward<ARGS>(args)...);
+    indexToCategory.push_back(categories.begin());
+    return categories.begin();
 }
 
 
